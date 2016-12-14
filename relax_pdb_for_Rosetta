@@ -1,0 +1,38 @@
+<ROSETTASCRIPTS>
+
+  <SCOREFXNS>
+    <ScoreFunction name="SFXN_STD" weights="beta" > 
+      <Reweight scoretype="coordinate_constraint" weight="1" />
+    </ScoreFunction>
+  </SCOREFXNS>
+
+  <RESIDUE_SELECTORS>
+  </RESIDUE_SELECTORS>
+
+  <TASKOPERATIONS>
+    <LimitAromaChi2 name="limitchi2" include_trp="1" />
+    <RestrictToRepacking name="restrict_to_repack" />
+    <IncludeCurrent name="include_starting_rotamers" />
+    <ExtraRotamersGeneric name="extra_rots" ex1="True" ex2="True" />
+  </TASKOPERATIONS>
+
+  <FILTERS>
+    <Rmsd name="RMSD_check" threshold="1" superimpose="True" confidence="0" />
+  </FILTERS>
+
+  <MOVERS>
+    <Dssp name="dssp" />
+    <FastRelax name="fastrelax" scorefxn="SFXN_STD" repeats="5" task_operations="limitchi2,restrict_to_repack,include_starting_rotamers,extra_rots" batch="false" ramp_down_constraints="false" cartesian="false" bondangle="false" bondlength="false" min_type="lbfgs_armijo_nonmonotone" />
+    <AddConstraintsToCurrentConformationMover name="apply_coordinate_constraints" use_distance_cst="False" coord_dev="0.1" bound_width="0" CA_only="False" bb_only="False" />
+    <ClearConstraintsMover name="remove_coordinate_constraints" />
+  </MOVERS>
+
+  <PROTOCOLS>
+    <Add mover_name="dssp" />
+    <Add mover_name="apply_coordinate_constraints" />
+    <Add mover_name="fastrelax" />
+    <Add mover_name="remove_coordinate_constraints" />
+    <Add filter_name="RMSD_check" />
+  </PROTOCOLS>
+
+</ROSETTASCRIPTS>
