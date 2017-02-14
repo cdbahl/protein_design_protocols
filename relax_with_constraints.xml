@@ -23,7 +23,7 @@
   <MOVERS>
     <Dssp name="dssp" />
     <FastRelax name="fastrelax" scorefxn="SFXN_STD" repeats="5" task_operations="limitchi2,restrict_to_repack,include_starting_rotamers,extra_rots" batch="false" ramp_down_constraints="false" cartesian="false" bondangle="false" bondlength="false" min_type="lbfgs_armijo_nonmonotone" />
-    <AddConstraintsToCurrentConformationMover name="apply_coordinate_constraints" use_distance_cst="False" coord_dev="0.1" bound_width="0" CA_only="False" bb_only="False" />
+    <AddConstraintsToCurrentConformationMover name="apply_coordinate_constraints" use_distance_cst="False" coord_dev="0.154" bound_width="0" CA_only="False" bb_only="False" />
     <ClearConstraintsMover name="remove_coordinate_constraints" />
   </MOVERS>
 
