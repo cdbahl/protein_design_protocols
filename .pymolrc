@@ -1,0 +1,16 @@
+run ~/.pymol_util.py
+set cartoon_fancy_helices, on
+set opaque_background, off
+set cartoon_highlight_color, grey90
+set ray_trace_mode, 1
+alias exit, quit
+alias pubfig,; \
+	set cartoon_oval_length, 1.0; \
+	set cartoon_oval_width, 0.3; \
+	set cartoon_rect_width, 1.3; \
+	set cartoon_rect_width, 0.25; \
+	set cartoon_highlight_color, grey90; \
+	set line_width, 3; \
+	set ribbon_width, 5; \
+	set cartoon_fancy_helices, off; \
+	set bg_rgb, white
