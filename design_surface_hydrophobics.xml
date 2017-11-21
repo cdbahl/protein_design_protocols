@@ -1,7 +1,7 @@
 <!--
-date:   February 14th 2017
+date:   November 21st 2017
 author: Christopher D. Bahl
-email:  cdbahl@gmail.com
+email:  chris.bahl@proteininnovation.org
 url:    http://function-structure.org/
 -->
 
@@ -10,9 +10,11 @@ url:    http://function-structure.org/
 
   <SCOREFXNS>
 
-    <!-- use latest score function for design, enable coordinate constraint weight -->
+    <!-- use latest score function for design, enable coordinate and sequence constraints, and hbnet term -->
     <ScoreFunction name="SFXN_STD" weights="beta" >
       <Reweight scoretype="coordinate_constraint" weight="1" />
+      <Reweight scoretype="aa_composition" weight="1"/>
+      <Reweight scoretype="hbnet" weight="1" />
     </ScoreFunction>
 
   </SCOREFXNS>
@@ -44,7 +46,7 @@ url:    http://function-structure.org/
     <ConsensusLoopDesign name="disallow_nonnative_loop_sequences" />
 
     <!-- only use polar amino acids for design of surface residues -->
-    <LayerDesign name="layer_surface" layer="surface_Nterm_Cterm" verbose="True" use_sidechain_neighbors="True" />
+    <LayerDesign name="layer_surface" layer="surface" verbose="False" use_sidechain_neighbors="True" />
 
     <!-- repack all residues that will not be designed -->
     <OperateOnResidueSubset name="repack_everything_else" selector="everything_else" >
@@ -93,6 +95,10 @@ url:    http://function-structure.org/
     <AddConstraintsToCurrentConformationMover name="apply_coordinate_constraints" cst_weight="1.0" use_distance_cst="False" coord_dev="0.154" bound_width="0" CA_only="True" bb_only="False" />
     <ClearConstraintsMover name="remove_coordinate_constraints" />
 
+    <!-- for adding and removing helix sequence design constraints -->
+    <AddHelixSequenceConstraints name="apply_helix_sequence_constraints" ala_constraint_under_strength="0" add_hydrophobic_constraints="false" />
+    <ClearCompositionConstraintsMover name="remove_sequence_constraints" />
+    
     <!-- flexible backbone design -->
     <FastDesign name="fastdesign" task_operations="extra_rots,limitchi2,include_starting_rotamers,disallow_nonnative_loop_sequences,layer_surface,repack_everything_else,omit_from_design" scorefxn="SFXN_STD" clear_designable_residues="True" repeats="3" ramp_down_constraints="False" />
 
@@ -111,7 +117,9 @@ url:    http://function-structure.org/
 
     <!-- perform flexible backbone design with coordinate constraints -->
     <Add mover_name="apply_coordinate_constraints" />
+    <Add mover_name="apply_helix_sequence_constraints" />
     <Add mover_name="fastdesign" />
+    <Add mover_name="remove_sequence_constraints" />
     <Add mover_name="remove_coordinate_constraints" />
 
     <!-- record scores for residue positions that were designed -->
@@ -120,7 +128,7 @@ url:    http://function-structure.org/
 
     <!-- check to make sure structure did not significantly drift due to flexible backbone design -->
     <Add filter_name="RMSD_check" />
-
+ 
   </PROTOCOLS>
 
 
