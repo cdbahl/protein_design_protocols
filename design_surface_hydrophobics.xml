@@ -1,20 +1,27 @@
-<!--
-date:   November 21st 2017
-author: Christopher D. Bahl
-email:  chris.bahl@proteininnovation.org
-url:    http://function-structure.org/
--->
-
 <ROSETTASCRIPTS>
 
+<!--
+keywords:   design, solubility
+author:     Christopher D. Bahl
+email:      chris.bahl@proteininnovation.org
+url:        http://function-structure.org/
+
+This protocol will identify solvent-exposed hydrophobic residues on the target protein, then mutate these residues to polar amino acids
+
+-->
 
   <SCOREFXNS>
 
-    <!-- use latest score function for design, enable coordinate and sequence constraints, and hbnet term -->
-    <ScoreFunction name="SFXN_STD" weights="beta" >
+    <!-- use latest score function for design, and enable design-specific energy terms -->
+    <ScoreFunction name="score_design" weights="beta" >
       <Reweight scoretype="coordinate_constraint" weight="1" />
       <Reweight scoretype="aa_composition" weight="1"/>
       <Reweight scoretype="hbnet" weight="1" />
+    </ScoreFunction>
+
+    <!-- the latest energy function without design-specific energy terms. this will be used to relax the pose after design -->
+    <ScoreFunction name="score_evaluate" weights="beta" >
+      <Reweight scoretype="coordinate_constraint" weight="1" />
     </ScoreFunction>
 
   </SCOREFXNS>
@@ -24,12 +31,9 @@ url:    http://function-structure.org/
 
     <!-- select hydrophobic residues on the protein surface -->
     <And name="surface_hydrophobics" >
-      <Layer select_core="False" select_boundary="False" select_surface="True" use_sidechain_neighbors="True" />
+      <Layer select_core="false" select_boundary="false" select_surface="true" use_sidechain_neighbors="true" />
       <ResidueName residue_name3="VAL,LEU,ILE,PHE,TYR,TRP,MET" />
     </And>
-
-    <!-- store selected hydrophobic residues on the protein surface so the score can be assessed post-design -->
-    <StoredResidueSubset name="hydrophobics_to_design" subset_name="stored_surface_hydrophobics" />
 
     <!-- select all other residue in the protein that will not be designed -->
     <Not name="everything_else" selector="hydrophobics_to_design" />
@@ -41,7 +45,7 @@ url:    http://function-structure.org/
 
     <!-- standard task operations used for design -->
     <LimitAromaChi2 name="limitchi2" include_trp="1" />
-    <ExtraRotamersGeneric name="extra_rots" ex1="True" ex2="True" />
+    <ExtraRotamersGeneric name="extra_rotamers" ex1="True" ex2="True" />
     <IncludeCurrent name="include_starting_rotamers" />
     <ConsensusLoopDesign name="disallow_nonnative_loop_sequences" />
 
@@ -53,14 +57,14 @@ url:    http://function-structure.org/
       <RestrictToRepackingRLT/>
     </OperateOnResidueSubset>
 
+    <OperateOnResidueSubset name="no_repack_core">
+      <Layer select_core="true" select_boundary="false" select_surface="false" use_sidechain_neighbors="true" />
+      <RestrictToRepackingRLT/>
+    </OperateOnResidueSubset>
+    
     <!-- option for users to specify residues at the command line that should not be altered -->
     <OperateOnResidueSubset name="omit_from_design" >
-      <Index resnums="%%do_not_change_residues%%"/>
-      <PreventRepackingRLT/>
-    </OperateOnResidueSubset>
-
-    <!-- turn off packing for residues that will not be designed; used for scoring purposes only -->
-    <OperateOnResidueSubset name="no-repack_everything_else" selector="everything_else" >
+      <Index resnums="%%RESIDUES%%"/>
       <PreventRepackingRLT/>
     </OperateOnResidueSubset>
 
@@ -69,13 +73,11 @@ url:    http://function-structure.org/
 
   <FILTERS>
 
-    <!-- assess total_score of designable residues before and after design -->
-    <TaskAwareScoreType name="final_target_res_total_score" task_operations="no-repack_everything_else" scorefxn="SFXN_STD" score_type="total_score"  mode="total" threshold="0" confidence="0" />
-    <Report name="starting_target_res_total_score" filter="final_target_res_total_score" />
-
-    <!-- assess fa_sol of designable residues before and after design -->
-    <TaskAwareScoreType name="final_target_res_fa_sol" task_operations="no-repack_everything_else" scorefxn="SFXN_STD" score_type="fa_sol"  mode="total" threshold="0" confidence="0" />
-    <Report name="starting_target_res_fa_sol" filter="final_target_res_fa_sol" />
+    <!-- record total_score and fa_sol before design -->
+    <ScoreType name="score_total_score" scorefxn="score_evaluate" score_type="total_score" threshold="0" confidence="0"/>
+    <Report name="starting_total_score" filter="score_total_score" />
+    <ScoreType name="score_fa_sol" scorefxn="score_evaluate" score_type="fa_sol" threshold="0" confidence="0"/>
+    <Report name="starting_fa_sol" filter="score_fa_sol" />
 
     <!-- check to make sure structure did not significantly drift due to flexible backbone design -->
     <Rmsd name="RMSD_check" threshold="10" superimpose="True" confidence="0" />
@@ -88,9 +90,6 @@ url:    http://function-structure.org/
     <!-- assign secondary structure information to the pose -->
     <Dssp name="dssp" />
 
-    <!-- store selected hydrophobic residues on the protein surface so the score can be assessed post-design -->
-    <StoreResidueSubset name="store_surface_hydrophobics" residue_selector="surface_hydrophobics" subset_name="stored_surface_hydrophobics" />
-
     <!-- for adding and removing coordinate constraints before and after design -->
     <AddConstraintsToCurrentConformationMover name="apply_coordinate_constraints" cst_weight="1.0" use_distance_cst="False" coord_dev="0.154" bound_width="0" CA_only="True" bb_only="False" />
     <ClearConstraintsMover name="remove_coordinate_constraints" />
@@ -100,31 +99,31 @@ url:    http://function-structure.org/
     <ClearCompositionConstraintsMover name="remove_sequence_constraints" />
     
     <!-- flexible backbone design -->
-    <FastDesign name="fastdesign" task_operations="extra_rots,limitchi2,include_starting_rotamers,disallow_nonnative_loop_sequences,layer_surface,repack_everything_else,omit_from_design" scorefxn="SFXN_STD" clear_designable_residues="True" repeats="3" ramp_down_constraints="False" />
+    <FastDesign name="fastdesign" scorefxn="score_design" repeats="3" task_operations="extra_rotamers,limitchi2,include_starting_rotamers,disallow_nonnative_loop_sequences,layer_surface,repack_everything_else,no_repack_core,omit_from_design"/>
+    
+    <!-- relax after design without design-specific energy terms -->
+    <FastRelax name="fastrelax" scorefxn="score_evaluate" repeats="1" task_operations="limitchi2,include_starting_rotamers,extra_rotamers" cartesian="false"/>
 
+    
   </MOVERS>
 
 
   <PROTOCOLS>
 
-    <!-- prepare for design; assign secondary structure to the pose and identify residue positions that will be designed -->
+    <!-- prepare for design -->
     <Add mover_name="dssp" />
-    <Add mover_name="store_surface_hydrophobics" />
 
-    <!-- record starting scores for residue positions that will be designed -->
-    <Add filter_name="starting_target_res_total_score" />
-    <Add filter_name="starting_target_res_fa_sol" />
+    <!-- record starting scores -->
+    <Add filter_name="starting_total_score" />
+    <Add filter_name="starting_fa_sol" />
 
-    <!-- perform flexible backbone design with coordinate constraints -->
+    <!-- perform flexible backbone design, then relax without design-specific energy terms -->
     <Add mover_name="apply_coordinate_constraints" />
     <Add mover_name="apply_helix_sequence_constraints" />
     <Add mover_name="fastdesign" />
     <Add mover_name="remove_sequence_constraints" />
+    <Add mover_name="fastrelax" />
     <Add mover_name="remove_coordinate_constraints" />
-
-    <!-- record scores for residue positions that were designed -->
-    <Add filter_name="final_target_res_total_score" />
-    <Add filter_name="final_target_res_fa_sol" />
 
     <!-- check to make sure structure did not significantly drift due to flexible backbone design -->
     <Add filter_name="RMSD_check" />
@@ -133,4 +132,3 @@ url:    http://function-structure.org/
 
 
 </ROSETTASCRIPTS>
-
