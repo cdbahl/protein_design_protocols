@@ -19,7 +19,7 @@ This protocol will identify solvent-exposed hydrophobic residues on the target p
       <Reweight scoretype="hbnet" weight="1" />
     </ScoreFunction>
 
-    <!-- the latest energy function without design-specific energy terms. this will be used to relax the pose after design -->
+    <!-- the latest energy function without design-specific energy terms -->
     <ScoreFunction name="score_evaluate" weights="beta" >
       <Reweight scoretype="coordinate_constraint" weight="1" />
     </ScoreFunction>
@@ -36,7 +36,7 @@ This protocol will identify solvent-exposed hydrophobic residues on the target p
     </And>
 
     <!-- select all other residue in the protein that will not be designed -->
-    <Not name="everything_else" selector="hydrophobics_to_design" />
+    <Not name="dont_design" selector="surface_hydrophobics" />
 
   </RESIDUE_SELECTORS>
 
@@ -53,13 +53,13 @@ This protocol will identify solvent-exposed hydrophobic residues on the target p
     <LayerDesign name="layer_surface" layer="surface" verbose="False" use_sidechain_neighbors="True" />
 
     <!-- repack all residues that will not be designed -->
-    <OperateOnResidueSubset name="repack_everything_else" selector="everything_else" >
+    <OperateOnResidueSubset name="restrict_non-design_to_repack" selector="dont_design" >
       <RestrictToRepackingRLT/>
     </OperateOnResidueSubset>
 
     <OperateOnResidueSubset name="no_repack_core">
       <Layer select_core="true" select_boundary="false" select_surface="false" use_sidechain_neighbors="true" />
-      <RestrictToRepackingRLT/>
+      <PreventRepackingRLT/>
     </OperateOnResidueSubset>
     
     <!-- option for users to specify residues at the command line that should not be altered -->
@@ -99,7 +99,7 @@ This protocol will identify solvent-exposed hydrophobic residues on the target p
     <ClearCompositionConstraintsMover name="remove_sequence_constraints" />
     
     <!-- flexible backbone design -->
-    <FastDesign name="fastdesign" scorefxn="score_design" repeats="3" task_operations="extra_rotamers,limitchi2,include_starting_rotamers,disallow_nonnative_loop_sequences,layer_surface,repack_everything_else,no_repack_core,omit_from_design"/>
+    <FastDesign name="fastdesign" scorefxn="score_design" repeats="3" task_operations="extra_rotamers,limitchi2,include_starting_rotamers,disallow_nonnative_loop_sequences,layer_surface,restrict_non-design_to_repack,no_repack_core,omit_from_design"/>
     
     <!-- relax after design without design-specific energy terms -->
     <FastRelax name="fastrelax" scorefxn="score_evaluate" repeats="1" task_operations="limitchi2,include_starting_rotamers,extra_rotamers" cartesian="false"/>
