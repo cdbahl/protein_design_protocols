@@ -1,0 +1,287 @@
+<ROSETTASCRIPTS>
+<!--
+Keywords: protein interface
+Author: Christopher D. Bahl
+Email: cdbahl@gmail.com
+
+This protocol is intended to provide a more detailed analysis of protein interfaces than is available from the standard ddG filter.
+-->
+
+  <SCOREFXNS>
+ 
+    <!-- cartesian score function -->
+    <ScoreFunction name="sfxn_cart" weights="beta_cart">
+    </ScoreFunction>
+
+    <!-- score function to evaluate the pose -->
+    <ScoreFunction name="sfxn_evaluate" weights="beta">
+      Reweight scoretype="coordinate_constraint" weight="1"/>
+    </ScoreFunction>
+
+    <!-- for scoring with polar score terms only --> 
+    <ScoreFunction name="sfxn_polar" weights="empty">
+      <Reweight scoretype="hbond_bb_sc" weight="1"/>
+      <Reweight scoretype="hbond_lr_bb" weight="1"/>
+      <Reweight scoretype="hbond_sc" weight="1"/>
+      <Reweight scoretype="hbond_sr_bb" weight="1"/>
+      <Reweight scoretype="lk_ball_bridge_uncpl" weight="-0.33"/>
+      <Reweight scoretype="fa_elec" weight="1"/>
+      <Reweight scoretype="hbnet" weight="1"/>
+    </ScoreFunction>
+
+    <!-- for scoring with fa_atr only-->
+    <ScoreFunction name="sfxn_vanderwaals" weights="empty">
+      <Reweight scoretype="fa_atr" weight="1.0"/>
+    </ScoreFunction>
+
+  </SCOREFXNS>
+
+
+  <RESIDUE_SELECTORS>
+
+    <!-- select target protein -->
+    <Chain name="target" chains="%%FIRSTCHAIN%%"/>
+    
+    <!-- select the binder protein -->
+    <Chain name="binder" chains="%%SECONDCHAIN%%"/>
+
+    <!-- select interface between the target and binder protein -->
+    <InterfaceByVector name="interface" grp1_selector="target" grp2_selector="binder"/>
+    <StoredResidueSubset name="stored_interface" subset_name="interface_subset" />
+
+    <!-- select everything that's not at the interface -->
+    <Not name="not_interface" selector="stored_interface"/>
+   
+  </RESIDUE_SELECTORS>
+
+
+  <MOVE_MAP_FACTORIES>
+
+    <MoveMapFactory name="move_interface" bb="false" chi="false">
+      <Backbone residue_selector="stored_interface" enable="true"/>
+      <Chi residue_selector="stored_interface" enable="true"/>
+    </MoveMapFactory>
+
+  </MOVE_MAP_FACTORIES>
+
+
+  <TASKOPERATIONS>
+
+    <!-- standard task operations -->
+    <LimitAromaChi2 name="limitchi2" include_trp="true"/>
+    <ExtraRotamersGeneric name="extra_rotamers" ex1="true" ex2="true"/>
+    <IncludeCurrent name="include_starting_rotamers"/>
+    <RestrictToRepacking name="repack"/>
+
+    <!-- turn off packing for the protein outside of the interface -->
+    <OperateOnResidueSubset name="no_repack_not_interface" selector="not_interface">
+      <PreventRepackingRLT/>
+    </OperateOnResidueSubset>
+
+
+  </TASKOPERATIONS>
+
+
+ 
+  <FILTERS>
+
+    <!-- filters to assess the quality of the interface between binder and target -->
+    <Sasa name="interface_area" threshold="1000" upper_threshold="99999" hydrophobic="0" polar="0" jump="1" confidence="0"/>
+    <ShapeComplementarity name="shape_complementarity" min_sc="0.65" min_interface="0" verbose="1" quick="0" write_int_area="1" jump="1" confidence="0"/>
+    <BuriedUnsatHbonds name="interface_unsatisfied_polar_atoms" residue_selector="interface" use_reporter_behavior="true"  report_bb_heavy_atom_unsats="true" report_sc_heavy_atom_unsats="true" report_nonheavy_unsats="false" use_sc_neighbors="true" ignore_surface_res="true" scorefxn="sfxn_evaluate" cutoff="0" confidence="0"/>
+
+<!--###########################################
+    ## filters for use with the ddG analyzer ##
+    ###########################################-->
+
+    <!-- ddG filter and components thereof -->
+    <ScoreType name="totalscore" scorefxn="sfxn_evaluate" score_type="total_score" threshold="0" confidence="0"/>
+    <Report name="complex_G" filter="totalscore" />
+    <Report name="dissociated_dG_1" filter="totalscore" />
+    <Report name="dissociated_dG_2" filter="totalscore" />
+    <Report name="dissociated_dG_3" filter="totalscore" />
+    <Report name="dissociated_dG_4" filter="totalscore" />
+    <Report name="dissociated_dG_5" filter="totalscore" />
+    <CalculatorFilter name="ddG" equation="complex - MEAN(dissociated_1,dissociated_2,dissociated_3,dissociated_4,dissociated_5)" threshold="0" confidence="0">
+      <Var name="complex" filter="complex_G"/>
+      <Var name="dissociated_1" filter="dissociated_dG_1"/>
+      <Var name="dissociated_2" filter="dissociated_dG_2"/>
+      <Var name="dissociated_3" filter="dissociated_dG_3"/>
+      <Var name="dissociated_4" filter="dissociated_dG_4"/>
+      <Var name="dissociated_5" filter="dissociated_dG_5"/>
+    </CalculatorFilter>
+
+    <!-- ddG_polar filter and components thereof -->
+    <ScoreType name="totalscore_polar" scorefxn="sfxn_polar" score_type="total_score" threshold="0" confidence="0"/>
+    <Report name="complex_G_polar" filter="totalscore_polar" />
+    <Report name="dissociated_dG_polar_1" filter="totalscore_polar" />
+    <Report name="dissociated_dG_polar_2" filter="totalscore_polar" />
+    <Report name="dissociated_dG_polar_3" filter="totalscore_polar" />
+    <Report name="dissociated_dG_polar_4" filter="totalscore_polar" />
+    <Report name="dissociated_dG_polar_5" filter="totalscore_polar" />
+    <CalculatorFilter name="ddG_polar" equation="complex - MEAN(dissociated_1,dissociated_2,dissociated_3,dissociated_4,dissociated_5)" threshold="0" confidence="0">
+      <Var name="complex" filter="complex_G_polar"/>
+      <Var name="dissociated_1" filter="dissociated_dG_polar_1"/>
+      <Var name="dissociated_2" filter="dissociated_dG_polar_2"/>
+      <Var name="dissociated_3" filter="dissociated_dG_polar_3"/>
+      <Var name="dissociated_4" filter="dissociated_dG_polar_4"/>
+      <Var name="dissociated_5" filter="dissociated_dG_polar_5"/>
+    </CalculatorFilter>
+
+    <!-- ddG_vanderwaals filter and components thereof -->
+    <ScoreType name="totalscore_vanderwaals" scorefxn="sfxn_vanderwaals" score_type="total_score" threshold="0" confidence="0"/>
+    <Report name="complex_G_vanderwaals" filter="totalscore_vanderwaals" />
+    <Report name="dissociated_dG_vanderwaals_1" filter="totalscore_vanderwaals" />
+    <Report name="dissociated_dG_vanderwaals_2" filter="totalscore_vanderwaals" />
+    <Report name="dissociated_dG_vanderwaals_3" filter="totalscore_vanderwaals" />
+    <Report name="dissociated_dG_vanderwaals_4" filter="totalscore_vanderwaals" />
+    <Report name="dissociated_dG_vanderwaals_5" filter="totalscore_vanderwaals" />
+    <CalculatorFilter name="ddG_vanderwaals" equation="complex - MEAN(dissociated_1,dissociated_2,dissociated_3,dissociated_4,dissociated_5)" threshold="0" confidence="0">
+      <Var name="complex" filter="complex_G_vanderwaals"/>
+      <Var name="dissociated_1" filter="dissociated_dG_vanderwaals_1"/>
+      <Var name="dissociated_2" filter="dissociated_dG_vanderwaals_2"/>
+      <Var name="dissociated_3" filter="dissociated_dG_vanderwaals_3"/>
+      <Var name="dissociated_4" filter="dissociated_dG_vanderwaals_4"/>
+      <Var name="dissociated_5" filter="dissociated_dG_vanderwaals_5"/>
+    </CalculatorFilter>
+
+    <!-- dd_sasa filter and components thereof -->
+    <TotalSasa name="sasa" confidence="0" />
+    <Report name="complex_sasa" filter="sasa" />
+    <Report name="dissociated_sasa_1" filter="sasa" />
+    <Report name="dissociated_sasa_2" filter="sasa" />
+    <Report name="dissociated_sasa_3" filter="sasa" />
+    <Report name="dissociated_sasa_4" filter="sasa" />
+    <Report name="dissociated_sasa_5" filter="sasa" />
+    <CalculatorFilter name="dd_sasa" equation="complex - MEAN(dissociated_1,dissociated_2,dissociated_3,dissociated_4,dissociated_5)" threshold="0" confidence="0">
+      <Var name="complex" filter="complex_sasa"/>
+      <Var name="dissociated_1" filter="dissociated_sasa_1"/>
+      <Var name="dissociated_2" filter="dissociated_sasa_2"/>
+      <Var name="dissociated_3" filter="dissociated_sasa_3"/>
+      <Var name="dissociated_4" filter="dissociated_sasa_4"/>
+      <Var name="dissociated_5" filter="dissociated_sasa_5"/>
+    </CalculatorFilter>
+
+    <!-- cross-interface_vanderwaals_count filter and components thereof -->
+    <AtomicContactCount name="vanderwaals_count" confidence="0" />
+    <Report name="complex_vanderwaals_count" filter="vanderwaals_count" />
+    <Report name="dissociated_vanderwaals_count" filter="vanderwaals_count" />
+    <CalculatorFilter name="cross-interface_vanderwaals_count" equation="complex - dissociated" threshold="0" confidence="0">
+      <Var name="complex" filter="complex_vanderwaals_count"/>
+      <Var name="dissociated" filter="dissociated_vanderwaals_count"/>
+    </CalculatorFilter>
+
+  </FILTERS>
+
+
+ <MOVERS>
+
+    <!-- assign secondary structure information to the pose -->
+    <Dssp name="dssp"/>
+
+<!--#########################
+    ## better ddG analyzer ##
+    #########################-->
+
+    <!-- save and recover pose information -->
+    <StoreResidueSubset name="store_interface_residues" subset_name="interface_subset" residue_selector="interface" overwrite="true"/>
+    <SavePoseMover name="save_starting_pose" restore_pose="false" reference_name="starting_pose"/>
+    <SavePoseMover name="restore_starting_pose" restore_pose="true" reference_name="starting_pose"/>
+
+    <!-- dissociate the protein complex -->
+    <RigidBodyTransMover name="dissociate_complex" jump="1" distance="100"/>
+
+    <!-- repack the interface and minimize the pose -->
+    <FastRelax name="fastrelax" scorefxn="sfxn_cart" repeats="5" movemap_factory="move_interface" task_operations="limitchi2,extra_rotamers,include_starting_rotamers,repack,no_repack_not_interface"/>
+
+    <!-- the ddG analyzer protocol -->
+    <ParsedProtocol name="ddG_analyzer" mode="sequence">
+
+      <!-- assess the complex -->
+      <Add filter_name="complex_G"/>
+      <Add filter_name="complex_G_polar"/>
+      <Add filter_name="complex_G_vanderwaals"/>
+      <Add filter_name="complex_sasa"/>
+      <Add filter_name="complex_vanderwaals_count"/>
+
+      <!-- dissociate the complex and assess packing-independent terms -->
+      <Add mover_name="dissociate_complex"/>
+      <Add filter_name="dissociated_vanderwaals_count"/>
+      <Add mover_name="restore_starting_pose"/>
+      <Add filter_name="cross-interface_vanderwaals_count"/>
+
+      <!-- REPEAT #1: dissociate the complex, repack interface residues, minimize, and assess energy -->
+      <Add mover_name="dissociate_complex"/>
+      <Add mover_name="fastrelax"/>
+      <Add filter_name="dissociated_dG_1"/>
+      <Add filter_name="dissociated_dG_polar_1"/>
+      <Add filter_name="dissociated_dG_vanderwaals_1"/>
+      <Add filter_name="dissociated_sasa_1"/>
+      <Add mover_name="restore_starting_pose"/>
+
+      <!-- REPEAT #2: dissociate the complex, repack interface residues, minimize, and assess energy -->
+      <Add mover_name="dissociate_complex"/>
+      <Add mover_name="fastrelax"/>
+      <Add filter_name="dissociated_dG_2"/>
+      <Add filter_name="dissociated_dG_polar_2"/>
+      <Add filter_name="dissociated_dG_vanderwaals_2"/>
+      <Add filter_name="dissociated_sasa_2"/>
+      <Add mover_name="restore_starting_pose"/>
+
+      <!-- REPEAT #3: dissociate the complex, repack interface residues, minimize, and assess energy -->
+      <Add mover_name="dissociate_complex"/>
+      <Add mover_name="fastrelax"/>
+      <Add filter_name="dissociated_dG_3"/>
+      <Add filter_name="dissociated_dG_polar_3"/>
+      <Add filter_name="dissociated_dG_vanderwaals_3"/>
+      <Add filter_name="dissociated_sasa_3"/>
+      <Add mover_name="restore_starting_pose"/>
+
+      <!-- REPEAT #4: dissociate the complex, repack interface residues, minimize, and assess energy -->
+      <Add mover_name="dissociate_complex"/>
+      <Add mover_name="fastrelax"/>
+      <Add filter_name="dissociated_dG_4"/>
+      <Add filter_name="dissociated_dG_polar_4"/>
+      <Add filter_name="dissociated_dG_vanderwaals_4"/>
+      <Add filter_name="dissociated_sasa_4"/>
+      <Add mover_name="restore_starting_pose"/>
+
+      <!-- REPEAT #5: dissociate the complex, repack interface residues, minimize, and assess energy -->
+      <Add mover_name="dissociate_complex"/>
+      <Add mover_name="fastrelax"/>
+      <Add filter_name="dissociated_dG_5"/>
+      <Add filter_name="dissociated_dG_polar_5"/>
+      <Add filter_name="dissociated_dG_vanderwaals_5"/>
+      <Add filter_name="dissociated_sasa_5"/>
+      <Add mover_name="restore_starting_pose"/>
+
+      <!-- run calculator filters to process the output -->
+      <Add filter_name="ddG"/>
+      <Add filter_name="ddG_polar"/>
+      <Add filter_name="ddG_vanderwaals"/>
+      <Add filter_name="dd_sasa"/>
+
+    </ParsedProtocol>
+
+  </MOVERS>
+
+
+  <PROTOCOLS>
+
+    <!-- prepare for protocol -->
+    <Add mover_name="dssp"/>
+
+    <!-- record information from the starting pose -->
+    <Add mover_name="store_interface_residues"/>
+    <Add mover_name="save_starting_pose"/>
+
+    <!-- assess the interface -->
+    <Add filter_name="interface_area"/>
+    <Add filter_name="shape_complementarity"/>
+    <Add filter_name="interface_unsatisfied_polar_atoms"/>
+    <Add mover_name="ddG_analyzer"/>
+
+  </PROTOCOLS>
+
+
+</ROSETTASCRIPTS>
