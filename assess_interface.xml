@@ -15,7 +15,6 @@ This protocol is intended to provide a more detailed analysis of protein interfa
 
     <!-- score function to evaluate the pose -->
     <ScoreFunction name="sfxn_evaluate" weights="beta">
-      Reweight scoretype="coordinate_constraint" weight="1"/>
     </ScoreFunction>
 
     <!-- for scoring with polar score terms only --> 
