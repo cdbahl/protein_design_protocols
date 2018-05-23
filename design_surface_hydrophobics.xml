@@ -16,7 +16,6 @@ This protocol will identify solvent-exposed hydrophobic residues on the target p
     <ScoreFunction name="score_design" weights="beta" >
       <Reweight scoretype="coordinate_constraint" weight="1" />
       <Reweight scoretype="aa_composition" weight="1"/>
-      <Reweight scoretype="hbnet" weight="1" />
     </ScoreFunction>
 
     <!-- the latest energy function without design-specific energy terms -->
@@ -101,10 +100,6 @@ This protocol will identify solvent-exposed hydrophobic residues on the target p
     <!-- flexible backbone design -->
     <FastDesign name="fastdesign" scorefxn="score_design" repeats="3" task_operations="extra_rotamers,limitchi2,include_starting_rotamers,disallow_nonnative_loop_sequences,layer_surface,restrict_non-design_to_repack,no_repack_core,omit_from_design"/>
     
-    <!-- relax after design without design-specific energy terms -->
-    <FastRelax name="fastrelax" scorefxn="score_evaluate" repeats="1" task_operations="limitchi2,include_starting_rotamers,extra_rotamers" cartesian="false"/>
-
-    
   </MOVERS>
 
 
@@ -117,12 +112,11 @@ This protocol will identify solvent-exposed hydrophobic residues on the target p
     <Add filter_name="starting_total_score" />
     <Add filter_name="starting_fa_sol" />
 
-    <!-- perform flexible backbone design, then relax without design-specific energy terms -->
+    <!-- perform flexible backbone design with constraints -->
     <Add mover_name="apply_coordinate_constraints" />
     <Add mover_name="apply_helix_sequence_constraints" />
     <Add mover_name="fastdesign" />
     <Add mover_name="remove_sequence_constraints" />
-    <Add mover_name="fastrelax" />
     <Add mover_name="remove_coordinate_constraints" />
 
     <!-- check to make sure structure did not significantly drift due to flexible backbone design -->
