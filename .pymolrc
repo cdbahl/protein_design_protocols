@@ -13,4 +13,5 @@ alias pubfig,; \
 	set line_width, 3; \
 	set ribbon_width, 5; \
 	set cartoon_fancy_helices, off; \
+	set cartoon_flat_sheets, off; \
 	set bg_rgb, white
