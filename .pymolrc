@@ -15,3 +15,6 @@ alias pubfig,; \
 	set cartoon_fancy_helices, off; \
 	set cartoon_flat_sheets, off; \
 	set bg_rgb, white
+set_color ipi_red, [237,28,36]
+set_color ipi_grey, [65,64,66]
+set_color ipi_black, [35,31,32]
