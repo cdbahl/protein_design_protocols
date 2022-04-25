@@ -3,8 +3,7 @@
 <!--
 keywords:   design, solubility
 author:     Christopher D. Bahl
-email:      chris.bahl@proteininnovation.org
-url:        http://function-structure.org/
+
 
 This protocol will identify solvent-exposed hydrophobic residues on the target protein, then mutate these residues to polar amino acids
 
